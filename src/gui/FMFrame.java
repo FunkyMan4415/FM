@@ -5,6 +5,11 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -21,6 +26,14 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
+
+import model.Fahrzeug;
+import model.Fahrzeugliste;
+import model.LKW;
+import model.Motorrad;
+import model.PKW;
 
 public class FMFrame extends JFrame{
 	private JLabel lblHeader;
@@ -32,19 +45,30 @@ public class FMFrame extends JFrame{
 	private JLabel lblHersteller, lblLeistung, lblPreis, lblTyp;
 	private JTextField fldHersteller;
 	private JSpinner spinLeistung, spinPreis;
-	private JComboBox boxTyp; 
+	private JComboBox<String> boxTyp; 
 	private JPanel pnlAdd;
 	private JPanel pnlLeft;
+	private Fahrzeugliste<Fahrzeug> fahrzeugListe;
 	
-	public FMFrame() {
+	public FMFrame(Fahrzeugliste<Fahrzeug> fahrzeugListe) {
+		this.fahrzeugListe = fahrzeugListe;
 		this.setTitle("Fahrzeug Manager");
-		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		
 		createWidgets();
 		setupInteractions();
 		addWidgets();
 		
 		this.pack();
+		
+		this.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				// TODO
+				System.out.println("Wirklich beenden?");
+				System.exit(0);
+			}
+		});
 		this.setLocationRelativeTo(null);
 	}
 
@@ -52,6 +76,8 @@ public class FMFrame extends JFrame{
 	
 	private void setupInteractions() {
 		btnAdd.addActionListener(new AddFahrzeugAction());
+		fldHersteller.addCaretListener(new HerstellerListener());
+		
 	}
 	private void createWidgets() {
 		lblHeader = new JLabel("Fahrzeug-Manager");
@@ -65,7 +91,7 @@ public class FMFrame extends JFrame{
 		progBar = new JProgressBar(0, 100);
 		progBar.setPreferredSize(new Dimension(0, 30));
 		
-		table = new JTable(100, 4);
+		table = new JTable(fahrzeugListe);
 		scrollTable = new JScrollPane(table);
 		
 		
@@ -88,6 +114,7 @@ public class FMFrame extends JFrame{
 		
 		
 		btnAdd = new JButton("Hinzufügen");
+		btnAdd.setEnabled(false);
 		
 		pnlLeft = new JPanel();
 		pnlLeft.setLayout(new BoxLayout(pnlLeft, BoxLayout.PAGE_AXIS));
@@ -124,4 +151,41 @@ public class FMFrame extends JFrame{
 		pnlLeft.add(btnInfo);
 		
 	}
+	
+	
+	private class HerstellerListener implements CaretListener{
+
+		@Override
+		public void caretUpdate(CaretEvent e) {
+			JTextField field = (JTextField) e.getSource();
+			String text = field.getText();
+			btnAdd.setEnabled(!text.trim().isEmpty());
+		}
+	}
+	private class AddFahrzeugAction implements ActionListener{
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			String hersteller = fldHersteller.getText();
+			int leistung = (Integer) spinLeistung.getValue();
+			int preis = (Integer) spinPreis.getValue();
+			String typ = boxTyp.getSelectedItem().toString();
+			
+			Fahrzeug f = null;
+			switch (typ) {
+			case "PKW":
+				f = new PKW(hersteller, leistung, preis, 4);
+				break;
+			case "LKW":
+				f = new LKW(hersteller, leistung, preis);
+			case "Motorrad":
+				f = new Motorrad(hersteller, leistung, preis);
+				break;
+			default:
+				break;
+			}
+			fahrzeugListe.add(f);
+		}
+	}
+
 }
